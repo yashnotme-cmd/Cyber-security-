@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EXTC Stealth Gateway</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #0f172a; color: white; }
+        .card { background: #1e293b; padding: 30px; border-radius: 15px; display: inline-block; border: 1px solid #334155; }
+        input { padding: 12px; margin: 10px; border-radius: 8px; border: none; width: 200px; }
+        .btn { padding: 12px 25px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; margin: 5px; }
+        .login-btn { background: #3b82f6; color: white; }
+        #controlPanel { display: none; margin-top: 20px; }
+        .reset-btn { background: #f59e0b; color: white; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🔐 Secure IoT Portal</h2>
+    
+    <div id="authArea">
+        <p>Enter Authorized Mobile Number:</p>
+        <input type="text" id="phoneInput" placeholder="Mobile Number">
+        <br>
+        <button class="login-btn btn" onclick="sendLogin()">Request Access</button>
+    </div>
+
+    <div id="controlPanel">
+        <h3 style="color: #22c55e;">Access Granted</h3>
+        <button class="btn" style="background:#475569; color:white;" onclick="updateDB('Light1', 1)">Light 1 ON</button>
+        <button class="btn" style="background:#475569; color:white;" onclick="updateDB('Light1', 0)">Light 1 OFF</button>
+        <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;">
+        <p>Enter Secret Reset Code:</p>
+        <input type="password" id="secretCode" placeholder="••••">
+        <br>
+        <button class="reset-btn btn" onclick="sendReset()">Verify & Reset Alert</button>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    // 1. YOUR FIREBASE CONFIG
+    const firebaseConfig = { databaseURL: "https://your-project-default-rtdb.firebaseio.com/" };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // 2. SEND LOGIN TO HARDWARE
+    function sendLogin() {
+        let phone = document.getElementById("phoneInput").value;
+        database.ref('login_attempt').set(phone); // ESP8266 will check this
+        alert("Authentication request sent...");
+    }
+
+    // 3. LISTEN FOR APPROVAL FROM HARDWARE
+    database.ref('access_granted').on('value', (snapshot) => {
+        if (snapshot.val() == 1) {
+            document.getElementById("authArea").style.display = "none";
+            document.getElementById("controlPanel").style.display = "block";
+        } else {
+            document.getElementById("authArea").style.display = "block";
+            document.getElementById("controlPanel").style.display = "none";
+        }
+    });
+
+    // 4. SEND RESET ATTEMPT
+    function sendReset() {
+        let code = document.getElementById("secretCode").value;
+        database.ref('reset_attempt').set(code); // ESP8266 will check for '786'
+        document.getElementById("secretCode").value = "";
+    }
+
+    function updateDB(path, val) { database.ref(path).set(val); }
+</script>
+</body>
+</html>
